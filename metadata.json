@@ -1,0 +1,8 @@
+{
+  "name": "LUMEX AI",
+  "description": "A visual assistant for the visually impaired using advanced multimodal models with spatial awareness.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
