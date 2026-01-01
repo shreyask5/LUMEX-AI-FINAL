@@ -307,7 +307,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
     };
   }, [onEndSession, isMuted]);
 
-  // Automatic Environment Description (Every 30 seconds)
+// Automatic Environment Description (Every 30 seconds)
   useEffect(() => {
     let intervalId: any;
 
@@ -315,20 +315,51 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
     if (status === 'connected') {
       intervalId = setInterval(() => {
         if (isConnectedRef.current && sessionRef.current) {
+
+          // 1. Capture the current video frame explicitly
+          let imageBase64: string | null = null;
+          if (videoRef.current && canvasRef.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            // Check if video is ready
+            if (video.readyState === 4 && ctx) {
+               // Draw video to canvas (using same 0.5 scale as stream for performance)
+               canvas.width = video.videoWidth * 0.5;
+               canvas.height = video.videoHeight * 0.5;
+               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+               // Convert to base64
+               const dataURL = canvas.toDataURL('image/jpeg', 0.5);
+               imageBase64 = dataURL.split(',')[1];
+            }
+          }
+
           sessionRef.current.then((session) => {
             const prompt = "Briefly describe the surrounding environment in short.";
             try {
-              // Check if sendClientContent exists (it should in @google/genai)
               if (typeof session.sendClientContent === 'function') {
+                const parts: any[] = [{ text: prompt }];
+
+                // 2. Attach the image to the prompt parts
+                if (imageBase64) {
+                    parts.push({
+                        inlineData: {
+                            mimeType: 'image/jpeg',
+                            data: imageBase64
+                        }
+                    });
+                }
+
                 session.sendClientContent({
-                    turns: [{ role: 'user', parts: [{ text: prompt }] }],
+                    turns: [{ role: 'user', parts: parts }],
                     turnComplete: true
                 });
               } else {
-                console.warn("session.sendClientContent is not a function. Checking available methods:", Object.keys(session));
+                console.warn("session.sendClientContent is not a function.");
               }
 
-              // Add to transcript for UI feedback so user knows it happened
               setTranscripts(prev => [...prev, {
                 id: Date.now().toString(),
                 role: 'user',
@@ -347,7 +378,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [status]); // Re-run when status changes to/from 'connected'
+  }, [status]);
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
@@ -567,7 +598,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
 
       {/* Controls */}
       <div className="flex-none px-6 pb-8 pt-6">
-         <div className="flex items-center justify-center gap-6">
+         <div className="flex items-center justify-center gap-3">
              <button
               onClick={toggleMute}
               className={`flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg backdrop-blur-md ring-1 righteous-regular ${
@@ -581,7 +612,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
               ) : (
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg>
               )}
-              <span>{isMuted ? 'Unmute' : 'Mute'}</span>
+              <span>{isMuted ? 'UNMUTE' : 'MUTE'}</span>
             </button>
             
             <button
@@ -601,7 +632,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
               className="flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide bg-black/40 text-red-400 ring-1 ring-red-500/30 hover:bg-red-950/50 hover:ring-red-500/60 hover:text-red-300 transition-all duration-300 shadow-lg backdrop-blur-md righteous-regular"
             >
                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 9h6v6H9z"/></svg>
-               <span>End Session</span>
+               <span>STOP</span>
             </button>
          </div>
       </div>
