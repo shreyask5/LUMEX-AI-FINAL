@@ -32,22 +32,26 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
   const inputProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  
+
   // API Refs
-  const sessionRef = useRef<any>(null);
+  const sessionRef = useRef<Promise<any> | null>(null);
   const frameIntervalRef = useRef<number | null>(null);
   const isConnectedRef = useRef<boolean>(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
 
   // Constants
   const INPUT_SAMPLE_RATE = 16000;
   const OUTPUT_SAMPLE_RATE = 24000;
   const FPS = 2;
 
-  // Auto-scroll transcript
+  // Auto-scroll transcript (both desktop and mobile)
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+    if (mobileScrollRef.current) {
+      mobileScrollRef.current.scrollTop = mobileScrollRef.current.scrollHeight;
     }
   }, [transcripts, isCcOpen]);
 
@@ -99,6 +103,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
         const sessionPromise = ai.live.connect({
           model: MODEL_NAME,
           config: {
+            tools: [{ googleSearch: {} }],
             responseModalities: [Modality.AUDIO],
             speechConfig: {
               voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
@@ -160,13 +165,14 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                     const text = inputTx || outputTx;
                     const role = inputTx ? 'user' : 'assistant';
                     
-                    // Check if the last message is from the same role and is not complete (streaming)
-                    // For this simple implementation, we append to the last message if roles match
-                    // This creates a "typing" effect
                     const lastMsg = newTranscripts[newTranscripts.length - 1];
                     
                     if (lastMsg && lastMsg.role === role) {
-                      lastMsg.text += text;
+                      // Immutable update to prevent issues
+                      newTranscripts[newTranscripts.length - 1] = {
+                        ...lastMsg,
+                        text: lastMsg.text + text
+                      };
                       return newTranscripts;
                     } else {
                       return [...newTranscripts, {
@@ -270,6 +276,18 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
     return () => {
       isMounted = false;
       isConnectedRef.current = false;
+      
+      // Cleanup Session
+      if (sessionRef.current) {
+        sessionRef.current.then(session => {
+          try {
+            session.close();
+          } catch(e) {
+            console.error("Error closing session:", e);
+          }
+        });
+      }
+
       if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
       if (inputProcessorRef.current) {
         inputProcessorRef.current.disconnect();
@@ -282,6 +300,48 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
       }
     };
   }, [onEndSession, isMuted]);
+
+  // Automatic Environment Description (Every 30 seconds)
+  useEffect(() => {
+    let intervalId: any;
+
+    // Only start the interval when the session is actually connected
+    if (status === 'connected') {
+      intervalId = setInterval(() => {
+        if (isConnectedRef.current && sessionRef.current) {
+          sessionRef.current.then((session) => {
+            const prompt = "Briefly describe the surrounding environment in short.";
+            try {
+              // Check if sendClientContent exists (it should in @google/genai)
+              if (typeof session.sendClientContent === 'function') {
+                session.sendClientContent({
+                    turns: [{ role: 'user', parts: [{ text: prompt }] }],
+                    turnComplete: true
+                });
+              } else {
+                console.warn("session.sendClientContent is not a function. Checking available methods:", Object.keys(session));
+              }
+
+              // Add to transcript for UI feedback so user knows it happened
+              setTranscripts(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'user',
+                text: prompt,
+                isComplete: true
+              }]);
+
+            } catch (e) {
+              console.error("Error sending auto-prompt:", e);
+            }
+          });
+        }
+      }, 30000); // 30 seconds
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [status]); // Re-run when status changes to/from 'connected'
 
   const toggleMute = () => {
     setIsMuted(!isMuted);
@@ -352,9 +412,9 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
 
       {/* Main Viewport - Flex Row for Side-by-Side Layout */}
       <div className="flex-1 relative flex min-h-0 px-4 gap-4 pt-2">
-         
-         {/* CC Panel - Now a sibling that displaces content */}
-         <div className={`flex flex-col bg-gray-900/90 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isCcOpen ? 'w-80 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-4 border-0'}`}>
+
+         {/* CC Panel - Desktop only (hidden on mobile) */}
+         <div className={`hidden md:flex flex-col bg-gray-900/90 backdrop-blur-xl border border-white/10 rounded-[2rem] overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isCcOpen ? 'w-80 opacity-100 translate-x-0' : 'w-0 opacity-0 -translate-x-4 border-0'}`}>
              {/* Fixed width inner container to prevent text reflow during width transition */}
              <div className="w-80 h-full flex flex-col">
                 <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5">
@@ -425,8 +485,8 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                      <span className="text-[10px] text-blue-400 font-mono">LATENCY: LOW</span>
                   </div>
 
-                  {/* Bottom Control/Info Panel */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4">
+                  {/* Bottom Control/Info Panel - Desktop: always shown, Mobile: hidden when CC is open */}
+                  <div className={`absolute bottom-0 left-0 right-0 p-6 space-y-4 transition-opacity duration-300 ${isCcOpen ? 'md:opacity-100 opacity-0 pointer-events-none md:pointer-events-auto' : 'opacity-100'}`}>
                      <div className="flex items-end justify-between">
                         <div>
                           <div className="flex items-center space-x-2 mb-2">
@@ -436,6 +496,42 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                           <p className="text-white/95 text-lg font-light leading-snug max-w-[85%] bree-serif-regular">
                              Analyzing environment for spatial guidance...
                           </p>
+                        </div>
+                     </div>
+                  </div>
+
+                  {/* Mobile-only Transcript Overlay - Shows at bottom when CC is open */}
+                  <div className={`md:hidden absolute bottom-0 left-0 right-0 transition-all duration-500 z-20 ${isCcOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}`}>
+                     <div className="bg-gray-900/10 backdrop-blur-sm border-t border-white/20 rounded-t-3xl shadow-2xl max-h-[32vh] flex flex-col pointer-events-auto">
+                        <div className="p-3 border-b border-white/10 flex items-center justify-between bg-white/5">
+                           <h3 className="font-bold text-xs tracking-wider uppercase text-amber-400 righteous-regular">Live Transcript</h3>
+                           <button onClick={toggleCc} className="text-gray-400 hover:text-white transition-colors p-1">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                           </button>
+                        </div>
+                        <div ref={mobileScrollRef} className="flex-1 overflow-y-auto p-3 space-y-2.5 custom-scrollbar min-h-[120px] max-h-[calc(32vh-60px)]">
+                           {transcripts.length === 0 && (
+                              <div className="flex flex-col items-center justify-center h-full text-gray-500 space-y-2">
+                                 <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" /></svg>
+                                 </div>
+                                 <p className="text-xs italic">Listening...</p>
+                              </div>
+                           )}
+                           {transcripts.map((msg, idx) => (
+                              <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}>
+                                 <span className="text-[9px] uppercase font-bold text-gray-500 mb-1 tracking-wider">
+                                    {msg.role === 'user' ? 'You' : 'Lumex'}
+                                 </span>
+                                 <div className={`px-3 py-2 rounded-2xl text-xs max-w-[85%] leading-relaxed shadow-sm ${
+                                    msg.role === 'user'
+                                    ? 'bg-blue-600 text-white rounded-tr-sm'
+                                    : 'bg-gray-800 text-gray-200 border border-gray-700 rounded-tl-sm'
+                                 }`}>
+                                    {msg.text}
+                                 </div>
+                              </div>
+                           ))}
                         </div>
                      </div>
                   </div>
