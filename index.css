@@ -1,6 +1,8 @@
 /* LUMEX AI - Global Styles */
 
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Reset and base styles */
 * {
