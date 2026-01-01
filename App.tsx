@@ -1,21 +1,18 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import LandingPage from './components/LandingPage';
 import LiveSession from './components/LiveSession';
 import { AppState } from './types';
 
 const App: React.FC = () => {
   const [appState, setAppState] = useState<AppState>(AppState.LANDING);
-  console.log('[App] Rendered with appState:', appState);
 
-  const startSession = useCallback(() => {
-    console.log('[App] 🚀 startSession called - changing state to ACTIVE');
+  const startSession = () => {
     setAppState(AppState.ACTIVE);
-  }, []);
+  };
 
-  const endSession = useCallback(() => {
-    console.log('[App] 🛑 endSession called - changing state to LANDING');
+  const endSession = () => {
     setAppState(AppState.LANDING);
-  }, []);
+  };
 
   return (
     <>
