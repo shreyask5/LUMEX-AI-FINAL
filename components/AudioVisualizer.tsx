@@ -33,7 +33,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({ stream, isActive, col
         }
       }
     } catch (e) {
-      console.error("Error creating media stream source for visualizer:", e);
+      // Error creating media stream source for visualizer - silently fail
       return;
     }
 

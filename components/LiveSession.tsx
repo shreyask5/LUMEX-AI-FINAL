@@ -109,7 +109,6 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
           },
           callbacks: {
             onopen: () => {
-              console.log("Live Session Opened");
               isConnectedRef.current = true;
               if (isMounted) setStatus('connected');
             },
@@ -181,12 +180,10 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
               }
             },
             onclose: () => {
-              console.log("Live Session Closed");
               isConnectedRef.current = false;
               if (isMounted) onEndSession();
             },
             onerror: (err) => {
-              console.error("Live API Error:", err);
               isConnectedRef.current = false;
               if (isMounted) {
                 setStatus('error');
@@ -199,6 +196,8 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
         sessionRef.current = sessionPromise;
 
         // 4. Setup Audio Input Streaming
+        // Note: ScriptProcessorNode is deprecated but still widely supported.
+        // Consider migrating to AudioWorkletNode in the future for better performance.
         const source = inputAudioContextRef.current.createMediaStreamSource(stream);
         const processor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
         inputProcessorRef.current = processor;
@@ -214,7 +213,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                try {
                  session.sendRealtimeInput({ media: pcmBlob });
                } catch (e) {
-                 console.error("Error sending audio:", e);
+                 // Error sending audio - silently fail to avoid disrupting user experience
                }
              }
           });
@@ -250,7 +249,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                       }
                     });
                   } catch (e) {
-                    console.error("Error sending video:", e);
+                    // Error sending video - silently fail to avoid disrupting user experience
                   }
                 }
               });
@@ -259,7 +258,6 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
         }
 
       } catch (err: any) {
-        console.error("Initialization error:", err);
         setStatus('error');
         setErrorMsg(err.message || "Failed to initialize.");
       }
