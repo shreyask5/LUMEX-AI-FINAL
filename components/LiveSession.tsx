@@ -29,7 +29,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
   // Audio Context Refs
   const inputAudioContextRef = useRef<AudioContext | null>(null);
   const outputAudioContextRef = useRef<AudioContext | null>(null);
-  const inputProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const inputProcessorRef = useRef<AudioWorkletNode | null>(null);
   const nextStartTimeRef = useRef<number>(0);
   const audioSourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
 
@@ -204,17 +204,23 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
 
         sessionRef.current = sessionPromise;
 
-        // 4. Setup Audio Input Streaming
+        // 4. Setup Audio Input Streaming with AudioWorklet
         const source = inputAudioContextRef.current.createMediaStreamSource(stream);
-        const processor = inputAudioContextRef.current.createScriptProcessor(4096, 1, 1);
+
+        // Load the AudioWorklet module
+        await inputAudioContextRef.current.audioWorklet.addModule('/audio-processor.js');
+
+        // Create AudioWorkletNode
+        const processor = new AudioWorkletNode(inputAudioContextRef.current, 'audio-input-processor');
         inputProcessorRef.current = processor;
 
-        processor.onaudioprocess = (e) => {
+        // Handle messages from the AudioWorklet
+        processor.port.onmessage = (event) => {
           if (isMuted || !isConnectedRef.current) return;
-          
-          const inputData = e.inputBuffer.getChannelData(0);
+
+          const inputData = event.data.audioData;
           const pcmBlob = createAudioBlob(inputData, INPUT_SAMPLE_RATE);
-          
+
           sessionPromise.then(session => {
              if (isConnectedRef.current) {
                try {

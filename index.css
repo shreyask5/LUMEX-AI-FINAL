@@ -1,5 +1,7 @@
 /* LUMEX AI - Global Styles */
 
+@import "tailwindcss";
+
 /* Reset and base styles */
 * {
   margin: 0;
