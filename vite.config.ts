@@ -12,5 +12,21 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, '.'),
     }
-  }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split React and ReactDOM into separate chunk
+          'react-vendor': ['react', 'react-dom'],
+          // Split Google GenAI into separate chunk (likely large)
+          'genai-vendor': ['@google/genai'],
+          // Split tsparticles into separate chunk
+          'particles-vendor': ['react-tsparticles', 'tsparticles-slim'],
+        },
+      },
+    },
+    // Increase chunk size warning limit to 600kb
+    chunkSizeWarningLimit: 600,
+  },
 });
