@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { MODEL_NAME, SYSTEM_INSTRUCTION } from '../constants';
 import { createAudioBlob, blobToBase64, decodeAudioData, base64ToArrayBuffer } from '../utils/audio';
-import AudioVisualizer from './AudioVisualizer';
 
 interface LiveSessionProps {
   onEndSession: () => void;
@@ -295,6 +294,20 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
   return (
     <div className="flex flex-col h-screen bg-gray-950 text-white overflow-hidden font-sans relative">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Bree+Serif&display=swap');
+
+        .righteous-regular {
+          font-family: 'Righteous', sans-serif;
+          font-weight: 400;
+          font-style: normal;
+        }
+
+        .bree-serif-regular {
+          font-family: 'Bree Serif', serif;
+          font-weight: 400;
+          font-style: normal;
+        }
+
         @keyframes scan {
           0% { top: 0%; opacity: 0; }
           15% { opacity: 1; }
@@ -345,7 +358,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
              {/* Fixed width inner container to prevent text reflow during width transition */}
              <div className="w-80 h-full flex flex-col">
                 <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5">
-                   <h3 className="font-bold text-sm tracking-wider uppercase text-blue-400">Live Transcript</h3>
+                   <h3 className="font-bold text-sm tracking-wider uppercase text-amber-400 righteous-regular">Live Transcript</h3>
                    <button onClick={toggleCc} className="text-gray-400 hover:text-white transition-colors">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                    </button>
@@ -391,8 +404,8 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
              {/* Loading State */}
              {status !== 'connected' && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
-                   <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-                   <div className="text-gray-400 text-sm font-medium tracking-wide animate-pulse">ESTABLISHING FEED...</div>
+                   <div className="w-12 h-12 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                   <div className="text-gray-400 text-sm font-medium tracking-wide animate-pulse righteous-regular">ESTABLISHING FEED...</div>
                 </div>
              )}
 
@@ -417,18 +430,13 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                      <div className="flex items-end justify-between">
                         <div>
                           <div className="flex items-center space-x-2 mb-2">
-                            <span className="animate-pulse w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                            <p className="text-blue-400 text-xs font-bold tracking-[0.2em] uppercase">Visual Assistant</p>
+                            <span className="animate-pulse w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                            <p className="text-amber-400 text-xs font-bold tracking-[0.2em] uppercase righteous-regular">Visual Assistant</p>
                           </div>
-                          <p className="text-white/95 text-lg font-light leading-snug max-w-[85%]">
+                          <p className="text-white/95 text-lg font-light leading-snug max-w-[85%] bree-serif-regular">
                              Analyzing environment for spatial guidance...
                           </p>
                         </div>
-                     </div>
-
-                     {/* Audio Visualizer */}
-                     <div className="h-16 w-full bg-black/20 backdrop-blur-md rounded-2xl border border-white/5 overflow-hidden p-2 ring-1 ring-white/10">
-                        <AudioVisualizer stream={mediaStreamRef.current} isActive={!isMuted} color="#60A5FA" className="w-full h-full" />
                      </div>
                   </div>
                </div>
@@ -442,11 +450,11 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
                 <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">System Error</h3>
+                <h3 className="text-xl font-bold text-white mb-2 bree-serif-regular">System Error</h3>
                 <p className="text-gray-400 text-sm mb-8 leading-relaxed">{errorMsg}</p>
                 <button 
                   onClick={onEndSession}
-                  className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold tracking-wide transition-colors shadow-lg shadow-red-900/20"
+                  className="w-full py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl font-bold tracking-wide transition-colors shadow-lg shadow-red-900/20 righteous-regular"
                 >
                   RESTART SYSTEM
                 </button>
@@ -460,7 +468,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
          <div className="flex items-center justify-center gap-6">
              <button
               onClick={toggleMute}
-              className={`flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg backdrop-blur-md ring-1 ${
+              className={`flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg backdrop-blur-md ring-1 righteous-regular ${
                 isMuted 
                 ? 'bg-red-500 text-white ring-red-400 hover:bg-red-600 hover:ring-red-500' 
                 : 'bg-gray-800/80 text-gray-200 ring-gray-700 hover:bg-gray-700 hover:ring-gray-600 hover:text-white'
@@ -476,9 +484,9 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
             
             <button
               onClick={toggleCc}
-              className={`flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg backdrop-blur-md ring-1 ${
+              className={`flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg backdrop-blur-md ring-1 righteous-regular ${
                 isCcOpen
-                ? 'bg-blue-600 text-white ring-blue-500 hover:bg-blue-500'
+                ? 'bg-amber-600 text-white ring-amber-500 hover:bg-amber-500'
                 : 'bg-gray-800/80 text-gray-200 ring-gray-700 hover:bg-gray-700 hover:ring-gray-600 hover:text-white'
               }`}
             >
@@ -488,7 +496,7 @@ const LiveSession: React.FC<LiveSessionProps> = ({ onEndSession }) => {
 
             <button
               onClick={onEndSession}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide bg-black/40 text-red-400 ring-1 ring-red-500/30 hover:bg-red-950/50 hover:ring-red-500/60 hover:text-red-300 transition-all duration-300 shadow-lg backdrop-blur-md"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-full font-semibold text-sm tracking-wide bg-black/40 text-red-400 ring-1 ring-red-500/30 hover:bg-red-950/50 hover:ring-red-500/60 hover:text-red-300 transition-all duration-300 shadow-lg backdrop-blur-md righteous-regular"
             >
                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><path d="M9 9h6v6H9z"/></svg>
                <span>End Session</span>
