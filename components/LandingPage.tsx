@@ -13,7 +13,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onInitialize }) => {
   }, []);
 
   return (
-    <main className="flex flex-col min-h-screen bg-gray-950 text-white overflow-x-hidden">
+    <main className="flex flex-col min-h-screen bg-gray-950 text-white overflow-x-hidden overflow-y-auto">
       {/* Google Fonts Import */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Bree+Serif&display=swap');
@@ -128,7 +128,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onInitialize }) => {
               <h2 className="text-amber-400 font-semibold tracking-widest text-xs sm:text-sm uppercase righteous-regular">Spatial Intelligence System</h2>
               
               {/* Big Title - Bree Serif Style */}
-              <h1 className="text-[60px] xs:text-[80px] sm:text-[120px] md:text-[180px] lg:text-[220px] font-bold bree-serif-regular leading-none tracking-tight">
+              <h1 className="text-[48px] xs:text-[64px] sm:text-[120px] md:text-[180px] lg:text-[220px] font-bold bree-serif-regular leading-none tracking-tight">
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-amber-400 to-blue-500">LUMEX</span>{' '}
                 <span className="text-white">AI</span>
               </h1>
